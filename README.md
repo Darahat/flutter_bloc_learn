@@ -1,149 +1,111 @@
-# OpsMate Authentication Flow Diagram
-
-```mermaid
 graph TD
-    %% UI Layer
-    subgraph "Presentation Layer"
-        LoginPage["LoginPage\n(UI)"]
-        SignupPage["SignupPage\n(UI)"]
-        AuthForm["AuthForm Widget\n(Form UI)"]
-        GoogleSignInButton["GoogleSignInButton\n(UI)"]
-    end
+%% Presentation Layer
+subgraph "Presentation Layer"
+LoginPageUI["LoginPage (UI)"]
+SignupPageUI["SignupPage (UI)"]
+DashboardPageUI["DashboardPage (UI)"]
+AuthFormUI["AuthForm Widget (Form)"]
+GoogleSignInButtonUI["GoogleSignInButton (Button)"]
+end
 
     %% BLoC Layer
     subgraph "BLoC Layer"
-        AuthBloc["AuthBloc\n(Business Logic)"]
-        AuthEvent["AuthEvent\n(User Actions)"]
-        AuthState["AuthState\n(UI State)"]
+        AuthBloc["AuthBloc (State Management)"]
+        TaskBloc["TaskBloc (State Management)"]
+        AuthEvent["AuthEvent (Events)"]
+        AuthState["AuthState (States)"]
+        TaskEvent["TaskEvent (Events)"]
+        TaskState["TaskState (States)"]
     end
 
     %% Domain Layer
     subgraph "Domain Layer"
-        LoginUseCase["LoginUseCase"]
-        RegisterUseCase["RegisterUseCase"]
-        LogoutUseCase["LogoutUseCase"]
-        GoogleSignInUseCase["GoogleSignInUseCase"]
-        CheckAuthStatusUseCase["CheckAuthStatusUseCase"]
-        AuthRepository["AuthRepository\n(Interface)"]
+        LoginUC["LoginUseCase"]
+        RegisterUC["RegisterUseCase"]
+        GoogleSignInUC["GoogleSignInUseCase"]
+        LogoutUC["LogoutUseCase"]
+        CheckAuthStatusUC["CheckAuthStatusUseCase"]
+        FetchTasksUC["FetchTasksUseCase"]
+        AuthRepo["AuthRepository (Interface)"]
+        TaskRepo["TaskRepository (Interface)"]
     end
 
     %% Data Layer
     subgraph "Data Layer"
-        AuthRepositoryImpl["AuthRepositoryImpl"]
-        AuthRemoteDataSource["AuthRemoteDataSource\n(Firebase)"]
-        AuthLocalDataSource["AuthLocalDataSource\n(Cache)"]
+        AuthRepoImpl["AuthRepositoryImpl"]
+        TaskRepoImpl["TaskRepositoryImpl"]
+        AuthRemoteDS["AuthRemoteDataSource (Firebase)"]
+        AuthLocalDS["AuthLocalDataSource (Hive/Cache)"]
+        TaskRemoteDS["TaskRemoteDataSource (Firebase/REST)"]
+        TaskLocalDS["TaskLocalDataSource (Hive/Cache)"]
     end
 
     %% External Services
     subgraph "External Services"
         FirebaseAuth["Firebase Auth"]
-        GoogleSignIn["Google Sign-In API"]
+        GoogleAPI["Google Sign-In API"]
+        Firestore["Cloud Firestore"]
+        Hive["Hive Local DB"]
     end
 
     %% Dependency Injection
-    DI["Dependency Injection\n(GetIt)"]
+    DI["GetIt (DI Container)"]
 
-    %% Flow Connections
-    LoginPage --> AuthForm
-    SignupPage --> AuthForm
-    AuthForm -- "1. User enters credentials" --> AuthForm
-    AuthForm -- "2. Dispatches LoginEvent/RegisterEvent" --> AuthEvent
-    GoogleSignInButton -- "Dispatches GoogleSignInEvent" --> AuthEvent
+    %% Flow
+    LoginPageUI --> AuthFormUI
+    SignupPageUI --> AuthFormUI
+    LoginPageUI --> GoogleSignInButtonUI
+    AuthFormUI -->|Dispatch Login/Register| AuthEvent
+    GoogleSignInButtonUI -->|Dispatch GoogleSignIn| AuthEvent
 
-    AuthEvent -- "3. Triggers handler in" --> AuthBloc
-    AuthBloc -- "4. Updates" --> AuthState
-    AuthState -- "5. UI reacts to state changes" --> LoginPage
-    AuthState --> SignupPage
-    AuthState --> AuthForm
+    AuthEvent --> AuthBloc
+    AuthBloc --> AuthState
+    AuthState --> LoginPageUI
+    AuthState --> SignupPageUI
+    AuthState --> DashboardPageUI
 
-    AuthBloc -- "6. Calls" --> LoginUseCase
-    AuthBloc --> RegisterUseCase
-    AuthBloc --> LogoutUseCase
-    AuthBloc --> GoogleSignInUseCase
-    AuthBloc --> CheckAuthStatusUseCase
+    AuthBloc --> LoginUC
+    AuthBloc --> RegisterUC
+    AuthBloc --> GoogleSignInUC
+    AuthBloc --> LogoutUC
+    AuthBloc --> CheckAuthStatusUC
 
-    LoginUseCase -- "7. Calls" --> AuthRepository
-    RegisterUseCase --> AuthRepository
-    LogoutUseCase --> AuthRepository
-    GoogleSignInUseCase --> AuthRepository
-    CheckAuthStatusUseCase --> AuthRepository
+    LoginUC --> AuthRepo
+    RegisterUC --> AuthRepo
+    GoogleSignInUC --> AuthRepo
+    LogoutUC --> AuthRepo
+    CheckAuthStatusUC --> AuthRepo
 
-    AuthRepository -- "8. Implemented by" --> AuthRepositoryImpl
+    AuthRepo --> AuthRepoImpl
+    AuthRepoImpl --> AuthRemoteDS
+    AuthRepoImpl --> AuthLocalDS
+    AuthRemoteDS --> FirebaseAuth
+    AuthRemoteDS --> GoogleAPI
+    AuthLocalDS --> Hive
 
-    AuthRepositoryImpl -- "9. Uses" --> AuthRemoteDataSource
-    AuthRepositoryImpl -- AuthLocalDataSource
+    DashboardPageUI -->|Triggers FetchTasksEvent| TaskEvent
+    TaskEvent --> TaskBloc
+    TaskBloc --> FetchTasksUC
+    FetchTasksUC --> TaskRepo
+    TaskRepo --> TaskRepoImpl
+    TaskRepoImpl --> TaskRemoteDS
+    TaskRepoImpl --> TaskLocalDS
+    TaskRemoteDS --> Firestore
+    TaskLocalDS --> Hive
+    TaskBloc --> TaskState
+    TaskState --> DashboardPageUI
 
-    AuthRemoteDataSource -- "10. Interacts with" --> FirebaseAuth
-    AuthRemoteDataSource --> GoogleSignIn
-
-    DI -- "Provides dependencies" --> AuthBloc
-    DI --> LoginUseCase
-    DI --> RegisterUseCase
-    DI --> LogoutUseCase
-    DI --> GoogleSignInUseCase
-    DI --> CheckAuthStatusUseCase
-    DI --> AuthRepositoryImpl
-    DI --> AuthRemoteDataSource
-    DI --> AuthLocalDataSource
-```
-
-## Authentication Flow Explanation
-
-### 1. User Interaction (Presentation Layer)
-
-- User enters email/password in `AuthForm` or clicks `GoogleSignInButton`
-- Form validation occurs
-- On submit, the appropriate event is dispatched:
-  - `LoginEvent` (email, password)
-  - `RegisterEvent` (name, email, password)
-  - `GoogleSignInEvent`
-
-### 2. BLoC Layer (Business Logic)
-
-- `AuthBloc` receives the event
-- Appropriate event handler is triggered:
-  - `_onLogin` for `LoginEvent`
-  - `_onRegister` for `RegisterEvent`
-  - `_onGoogleSignIn` for `GoogleSignInEvent`
-- BLoC emits `AuthState.loading` state
-
-### 3. Domain Layer (Use Cases)
-
-- BLoC calls the appropriate use case:
-  - `LoginUseCase.call(LoginParams)`
-  - `RegisterUseCase.call(RegisterParams)`
-  - `GoogleSignInUseCase.call(NoParams)`
-- Use cases encapsulate business logic and call repository methods
-
-### 4. Repository Layer (Domain/Data Bridge)
-
-- Use cases call methods on `AuthRepository` interface
-- `AuthRepositoryImpl` implements the interface
-- Repository coordinates between remote and local data sources
-
-### 5. Data Layer (Data Sources)
-
-- `AuthRemoteDataSource` handles Firebase Auth operations
-- `AuthLocalDataSource` handles local caching of user data
-- Data sources return model objects that are mapped to domain entities
-
-### 6. External Services
-
-- Firebase Auth handles actual authentication
-- Google Sign-In API handles OAuth authentication
-
-### 7. Response Flow (Back to UI)
-
-- Data flows back up the layers
-- BLoC emits new state:
-  - `AuthState.authenticated` with user data on success
-  - `AuthState.unauthenticated` with error message on failure
-- UI reacts to state changes:
-  - Navigate to tasks page on success
-  - Show error message on failure
-
-### 8. Dependency Injection
-
-- GetIt provides dependencies to all layers
-- Ensures proper separation of concerns
-- Facilitates testing by allowing mock implementations
+    DI --> AuthBloc
+    DI --> TaskBloc
+    DI --> LoginUC
+    DI --> RegisterUC
+    DI --> GoogleSignInUC
+    DI --> LogoutUC
+    DI --> CheckAuthStatusUC
+    DI --> FetchTasksUC
+    DI --> AuthRepoImpl
+    DI --> TaskRepoImpl
+    DI --> AuthRemoteDS
+    DI --> AuthLocalDS
+    DI --> TaskRemoteDS
+    DI --> TaskLocalDS

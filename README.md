@@ -1,25 +1,21 @@
-Certainly! Below is your **clean text-only version** of the diagram for inclusion in your `README.md`. It describes the data flow and relationships clearly in **text format**, no graph rendering, so it will display properly on GitHub:
+Certainly! Below is the **clean, text-only version** focusing **only on the authentication flow** for your `README.md`:
 
 ---
 
-## 🛠 OpsMate Data Flow & Dependency Summary
+## 🛠 OpsMate Authentication Data Flow & Dependency Summary
 
 ### Presentation Layer
 
 - `LoginPage (UI)`
 - `SignupPage (UI)`
-- `DashboardPage (UI)`
 - `AuthForm Widget (Form)`
 - `GoogleSignInButton (Button)`
 
 ### BLoC Layer
 
 - `AuthBloc (State Management)`
-- `TaskBloc (State Management)`
 - `AuthEvent (Events)`
 - `AuthState (States)`
-- `TaskEvent (Events)`
-- `TaskState (States)`
 
 ### Domain Layer
 
@@ -28,24 +24,18 @@ Certainly! Below is your **clean text-only version** of the diagram for inclusio
 - `GoogleSignInUseCase`
 - `LogoutUseCase`
 - `CheckAuthStatusUseCase`
-- `FetchTasksUseCase`
 - `AuthRepository (Interface)`
-- `TaskRepository (Interface)`
 
 ### Data Layer
 
 - `AuthRepositoryImpl`
-- `TaskRepositoryImpl`
 - `AuthRemoteDataSource (Firebase)`
 - `AuthLocalDataSource (Hive/Cache)`
-- `TaskRemoteDataSource (Firebase/REST)`
-- `TaskLocalDataSource (Hive/Cache)`
 
 ### External Services
 
 - `Firebase Auth`
 - `Google Sign-In API`
-- `Cloud Firestore`
 - `Hive Local DB`
 
 ### Dependency Injection
@@ -54,65 +44,55 @@ Certainly! Below is your **clean text-only version** of the diagram for inclusio
 
 ---
 
-## 🔄 Data Flow
+## 🔄 Authentication Data Flow
 
-- `LoginPage` → `AuthForm`
+- `LoginPage` and `SignupPage` use `AuthForm` for user input.
+- `LoginPage` also provides a `GoogleSignInButton` for OAuth login.
+- `AuthForm` dispatches:
 
-- `SignupPage` → `AuthForm`
+  - `LoginEvent` (email/password login)
+  - `RegisterEvent` (account creation)
 
-- `LoginPage` → `GoogleSignInButton`
+- `GoogleSignInButton` dispatches:
 
-- `AuthForm` dispatches `LoginEvent` / `RegisterEvent` → `AuthBloc`
+  - `GoogleSignInEvent`
 
-- `GoogleSignInButton` dispatches `GoogleSignInEvent` → `AuthBloc`
+- `AuthBloc` listens to events and:
 
-- `AuthBloc` processes events → triggers use cases (`LoginUseCase`, `RegisterUseCase`, `GoogleSignInUseCase`, `LogoutUseCase`, `CheckAuthStatusUseCase`)
+  - Calls appropriate use cases (`LoginUseCase`, `RegisterUseCase`, `GoogleSignInUseCase`, `LogoutUseCase`, `CheckAuthStatusUseCase`)
+  - Emits `AuthState` updates (`loading`, `authenticated`, `unauthenticated`, `error`)
 
-- Use cases call `AuthRepository`
+- Use cases interact with `AuthRepository`.
+- `AuthRepositoryImpl` coordinates:
 
-- `AuthRepositoryImpl` uses `AuthRemoteDataSource` + `AuthLocalDataSource`
+  - `AuthRemoteDataSource` → communicates with `Firebase Auth`, `Google Sign-In API`
+  - `AuthLocalDataSource` → caches data in `Hive`
 
-- `AuthRemoteDataSource` interacts with `Firebase Auth` and `Google Sign-In API`
+- Results propagate back:
 
-- `AuthLocalDataSource` interacts with `Hive`
-
-- `AuthBloc` updates `AuthState` → UI reacts (`LoginPage`, `SignupPage`, `DashboardPage`)
-
-- `DashboardPage` triggers `FetchTasksEvent` → `TaskBloc`
-
-- `TaskBloc` processes event → triggers `FetchTasksUseCase`
-
-- `FetchTasksUseCase` calls `TaskRepository`
-
-- `TaskRepositoryImpl` uses `TaskRemoteDataSource` + `TaskLocalDataSource`
-
-- `TaskRemoteDataSource` interacts with `Cloud Firestore`
-
-- `TaskLocalDataSource` interacts with `Hive`
-
-- `TaskBloc` updates `TaskState` → UI updates `DashboardPage`
-
-- All components get their dependencies from `GetIt (DI Container)`
+  - `AuthBloc` updates `AuthState`
+  - UI reacts (e.g., navigation on success, error display on failure)
 
 ---
 
-## ⚙ Example of Dependency Injection via GetIt
+## ⚙ Dependency Injection via GetIt
 
 - `GetIt` provides:
 
-  - `AuthBloc`, `TaskBloc`
-  - All use cases (e.g. `LoginUseCase`, `FetchTasksUseCase`)
-  - Repository implementations
-  - Data sources
+  - `AuthBloc`
+  - All use cases (`LoginUseCase`, `RegisterUseCase`, `GoogleSignInUseCase`, `LogoutUseCase`, `CheckAuthStatusUseCase`)
+  - `AuthRepositoryImpl`
+  - `AuthRemoteDataSource`
+  - `AuthLocalDataSource`
 
 ---
 
-✅ **This text structure is suitable for GitHub README.md** — it will display correctly without requiring Mermaid or diagram rendering.
+✅ **This structure is GitHub-friendly for README.md — no diagram rendering required.**
 
-If you'd like, I can help:
+If you want, I can also help:
 
-- Generate a folder/file structure section
-- Add installation/setup instructions
-- Write testing strategies
+- Add folder/file structure
+- Write setup or usage instructions
+- Document API references
 
-Let me know!
+Let me know your preference!

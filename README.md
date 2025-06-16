@@ -1,111 +1,118 @@
-graph TD
-%% Presentation Layer
-subgraph "Presentation Layer"
-LoginPageUI["LoginPage (UI)"]
-SignupPageUI["SignupPage (UI)"]
-DashboardPageUI["DashboardPage (UI)"]
-AuthFormUI["AuthForm Widget (Form)"]
-GoogleSignInButtonUI["GoogleSignInButton (Button)"]
-end
+Certainly! Below is your **clean text-only version** of the diagram for inclusion in your `README.md`. It describes the data flow and relationships clearly in **text format**, no graph rendering, so it will display properly on GitHub:
 
-    %% BLoC Layer
-    subgraph "BLoC Layer"
-        AuthBloc["AuthBloc (State Management)"]
-        TaskBloc["TaskBloc (State Management)"]
-        AuthEvent["AuthEvent (Events)"]
-        AuthState["AuthState (States)"]
-        TaskEvent["TaskEvent (Events)"]
-        TaskState["TaskState (States)"]
-    end
+---
 
-    %% Domain Layer
-    subgraph "Domain Layer"
-        LoginUC["LoginUseCase"]
-        RegisterUC["RegisterUseCase"]
-        GoogleSignInUC["GoogleSignInUseCase"]
-        LogoutUC["LogoutUseCase"]
-        CheckAuthStatusUC["CheckAuthStatusUseCase"]
-        FetchTasksUC["FetchTasksUseCase"]
-        AuthRepo["AuthRepository (Interface)"]
-        TaskRepo["TaskRepository (Interface)"]
-    end
+## 🛠 OpsMate Data Flow & Dependency Summary
 
-    %% Data Layer
-    subgraph "Data Layer"
-        AuthRepoImpl["AuthRepositoryImpl"]
-        TaskRepoImpl["TaskRepositoryImpl"]
-        AuthRemoteDS["AuthRemoteDataSource (Firebase)"]
-        AuthLocalDS["AuthLocalDataSource (Hive/Cache)"]
-        TaskRemoteDS["TaskRemoteDataSource (Firebase/REST)"]
-        TaskLocalDS["TaskLocalDataSource (Hive/Cache)"]
-    end
+### Presentation Layer
 
-    %% External Services
-    subgraph "External Services"
-        FirebaseAuth["Firebase Auth"]
-        GoogleAPI["Google Sign-In API"]
-        Firestore["Cloud Firestore"]
-        Hive["Hive Local DB"]
-    end
+- `LoginPage (UI)`
+- `SignupPage (UI)`
+- `DashboardPage (UI)`
+- `AuthForm Widget (Form)`
+- `GoogleSignInButton (Button)`
 
-    %% Dependency Injection
-    DI["GetIt (DI Container)"]
+### BLoC Layer
 
-    %% Flow
-    LoginPageUI --> AuthFormUI
-    SignupPageUI --> AuthFormUI
-    LoginPageUI --> GoogleSignInButtonUI
-    AuthFormUI -->|Dispatch Login/Register| AuthEvent
-    GoogleSignInButtonUI -->|Dispatch GoogleSignIn| AuthEvent
+- `AuthBloc (State Management)`
+- `TaskBloc (State Management)`
+- `AuthEvent (Events)`
+- `AuthState (States)`
+- `TaskEvent (Events)`
+- `TaskState (States)`
 
-    AuthEvent --> AuthBloc
-    AuthBloc --> AuthState
-    AuthState --> LoginPageUI
-    AuthState --> SignupPageUI
-    AuthState --> DashboardPageUI
+### Domain Layer
 
-    AuthBloc --> LoginUC
-    AuthBloc --> RegisterUC
-    AuthBloc --> GoogleSignInUC
-    AuthBloc --> LogoutUC
-    AuthBloc --> CheckAuthStatusUC
+- `LoginUseCase`
+- `RegisterUseCase`
+- `GoogleSignInUseCase`
+- `LogoutUseCase`
+- `CheckAuthStatusUseCase`
+- `FetchTasksUseCase`
+- `AuthRepository (Interface)`
+- `TaskRepository (Interface)`
 
-    LoginUC --> AuthRepo
-    RegisterUC --> AuthRepo
-    GoogleSignInUC --> AuthRepo
-    LogoutUC --> AuthRepo
-    CheckAuthStatusUC --> AuthRepo
+### Data Layer
 
-    AuthRepo --> AuthRepoImpl
-    AuthRepoImpl --> AuthRemoteDS
-    AuthRepoImpl --> AuthLocalDS
-    AuthRemoteDS --> FirebaseAuth
-    AuthRemoteDS --> GoogleAPI
-    AuthLocalDS --> Hive
+- `AuthRepositoryImpl`
+- `TaskRepositoryImpl`
+- `AuthRemoteDataSource (Firebase)`
+- `AuthLocalDataSource (Hive/Cache)`
+- `TaskRemoteDataSource (Firebase/REST)`
+- `TaskLocalDataSource (Hive/Cache)`
 
-    DashboardPageUI -->|Triggers FetchTasksEvent| TaskEvent
-    TaskEvent --> TaskBloc
-    TaskBloc --> FetchTasksUC
-    FetchTasksUC --> TaskRepo
-    TaskRepo --> TaskRepoImpl
-    TaskRepoImpl --> TaskRemoteDS
-    TaskRepoImpl --> TaskLocalDS
-    TaskRemoteDS --> Firestore
-    TaskLocalDS --> Hive
-    TaskBloc --> TaskState
-    TaskState --> DashboardPageUI
+### External Services
 
-    DI --> AuthBloc
-    DI --> TaskBloc
-    DI --> LoginUC
-    DI --> RegisterUC
-    DI --> GoogleSignInUC
-    DI --> LogoutUC
-    DI --> CheckAuthStatusUC
-    DI --> FetchTasksUC
-    DI --> AuthRepoImpl
-    DI --> TaskRepoImpl
-    DI --> AuthRemoteDS
-    DI --> AuthLocalDS
-    DI --> TaskRemoteDS
-    DI --> TaskLocalDS
+- `Firebase Auth`
+- `Google Sign-In API`
+- `Cloud Firestore`
+- `Hive Local DB`
+
+### Dependency Injection
+
+- `GetIt (DI Container)`
+
+---
+
+## 🔄 Data Flow
+
+- `LoginPage` → `AuthForm`
+
+- `SignupPage` → `AuthForm`
+
+- `LoginPage` → `GoogleSignInButton`
+
+- `AuthForm` dispatches `LoginEvent` / `RegisterEvent` → `AuthBloc`
+
+- `GoogleSignInButton` dispatches `GoogleSignInEvent` → `AuthBloc`
+
+- `AuthBloc` processes events → triggers use cases (`LoginUseCase`, `RegisterUseCase`, `GoogleSignInUseCase`, `LogoutUseCase`, `CheckAuthStatusUseCase`)
+
+- Use cases call `AuthRepository`
+
+- `AuthRepositoryImpl` uses `AuthRemoteDataSource` + `AuthLocalDataSource`
+
+- `AuthRemoteDataSource` interacts with `Firebase Auth` and `Google Sign-In API`
+
+- `AuthLocalDataSource` interacts with `Hive`
+
+- `AuthBloc` updates `AuthState` → UI reacts (`LoginPage`, `SignupPage`, `DashboardPage`)
+
+- `DashboardPage` triggers `FetchTasksEvent` → `TaskBloc`
+
+- `TaskBloc` processes event → triggers `FetchTasksUseCase`
+
+- `FetchTasksUseCase` calls `TaskRepository`
+
+- `TaskRepositoryImpl` uses `TaskRemoteDataSource` + `TaskLocalDataSource`
+
+- `TaskRemoteDataSource` interacts with `Cloud Firestore`
+
+- `TaskLocalDataSource` interacts with `Hive`
+
+- `TaskBloc` updates `TaskState` → UI updates `DashboardPage`
+
+- All components get their dependencies from `GetIt (DI Container)`
+
+---
+
+## ⚙ Example of Dependency Injection via GetIt
+
+- `GetIt` provides:
+
+  - `AuthBloc`, `TaskBloc`
+  - All use cases (e.g. `LoginUseCase`, `FetchTasksUseCase`)
+  - Repository implementations
+  - Data sources
+
+---
+
+✅ **This text structure is suitable for GitHub README.md** — it will display correctly without requiring Mermaid or diagram rendering.
+
+If you'd like, I can help:
+
+- Generate a folder/file structure section
+- Add installation/setup instructions
+- Write testing strategies
+
+Let me know!

@@ -1,58 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_bloc_learn/Home/bloc/home_bloc.dart';
+import 'package:flutter_bloc_learn/features/text/presentation/bloc/text_bloc.dart';
+import 'package:flutter_bloc_learn/features/text/presentation/pages/text_page.dart';
+import 'package:flutter_bloc_learn/core/hive_config.dart';
+import 'package:flutter_bloc_learn/features/text/data/repositories/text_repository_impl.dart';
+import 'package:flutter_bloc_learn/features/text/domain/usecases/save_text_usecase.dart';
 
-void main() {
-  // Entry point of the Flutter application
-  runApp(MyApp());
+void main() async {
+  /// Ensure that the binding is initialized before using any Flutter widgets.
+  WidgetsFlutterBinding.ensureInitialized();
+  await HiveConfig.init();
+  final repository = TextRepositoryImpl();
+  final saveUseCase = SaveTextUsecase(repository);
+  runApp(MyApp(repository: repository, saveUseCase: saveUseCase));
 }
 
-// Root widget of the application
 class MyApp extends StatelessWidget {
+  const MyApp({super.key, required this.saveUseCase, required this.repository});
+  final TextRepositoryImpl repository;
+  final SaveTextUsecase saveUseCase;
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // Providing the HomeBloc to the widget tree
-      home: BlocProvider(create: (context) => HomeBloc(), child: CounterPage()),
+    return BlocProvider(
+      create: (_) => TextBloc(saveUseCase, repository),
+      child: MaterialApp(debugShowCheckedModeBanner: false, home: TextPage()),
     );
   }
 }
 
-// Widget representing the Counter Page
-class CounterPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // Accessing the HomeBloc instance from the context
-    final HomeBloc counterBloc = BlocProvider.of<HomeBloc>(context);
-
-    return BlocBuilder<HomeBloc, CounterState>(
-      // Rebuilding the UI based on the current state of HomeBloc
-      builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('Flutter BLoC Example'),
-            backgroundColor: Colors.blue.shade800,
-            foregroundColor: Colors.white,
-          ),
-          body: Center(
-            // Displaying the current counter value
-            child: Text(
-              'Counter: ${state.counter}',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.blue.shade800,
-            foregroundColor: Colors.white,
-            onPressed: () {
-              // Dispatching an event to increment the counter
-              counterBloc.add(CounterIncrementPressed(counter: state.counter));
-            },
-            child: Icon(Icons.add),
-          ),
-        );
-      },
-    );
-  }
-}
+/// Root widget of the application
